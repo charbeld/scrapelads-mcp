@@ -1,0 +1,14 @@
+{
+  "name": "scrapelads-mcp",
+  "version": "1.0.0",
+  "description": "Remote MCP server exposing TikTok creator emails, YouTube channel contacts and video transcripts.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://scrapelads.com/mcp-server/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/charbeld/scrapelads-mcp.git"
+  },
+  "keywords": ["mcp", "model-context-protocol", "tiktok", "youtube", "transcripts", "scraping"],
+  "main": "src/mcp.js"
+}

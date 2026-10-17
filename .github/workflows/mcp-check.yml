@@ -1,0 +1,44 @@
+name: MCP endpoint check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * *"
+
+jobs:
+  handshake:
+    name: Handshake and tool listing
+    runs-on: ubuntu-latest
+    steps:
+      - name: initialize
+        run: |
+          set -euo pipefail
+          response=$(curl -sS --fail-with-body -X POST https://scrapelads.com/mcp \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1.0.0"}}}')
+          echo "$response" | jq .
+          echo "$response" | jq -e '.result.protocolVersion' > /dev/null
+          echo "$response" | jq -e '.result.serverInfo.name == "scrapelads"' > /dev/null
+
+      - name: tools/list
+        run: |
+          set -euo pipefail
+          response=$(curl -sS --fail-with-body -X POST https://scrapelads.com/mcp \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}')
+          echo "$response" | jq -r '.result.tools[].name'
+          echo "$response" | jq -e '.result.tools | length == 3' > /dev/null
+          for tool in find_tiktok_creators find_youtube_channel_emails get_video_transcripts; do
+            echo "$response" | jq -e --arg t "$tool" '.result.tools | map(.name) | index($t)' > /dev/null
+          done
+
+      - name: unauthenticated call is refused cleanly
+        run: |
+          set -euo pipefail
+          response=$(curl -sS --fail-with-body -X POST https://scrapelads.com/mcp \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"find_tiktok_creators","arguments":{"keywords":["test"]}}}')
+          echo "$response" | jq .
+          echo "$response" | jq -e '.result.isError == true' > /dev/null
