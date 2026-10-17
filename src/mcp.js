@@ -106,6 +106,42 @@ const TOOLS = [
 
 // ---------------------------------------------------------------------------
 
+/**
+ * MCP Server Card — static discovery document. The spec is still draft and three
+ * paths are in circulation, so the Worker serves this at all three.
+ * Built from TOOLS so it cannot drift from what the server actually exposes.
+ */
+export function serverCard() {
+  return {
+    name: SERVER_INFO.name,
+    title: SERVER_INFO.title,
+    description:
+      "TikTok creator emails, YouTube channel contacts and video transcripts for AI assistants.",
+    version: SERVER_INFO.version,
+    serverInfo: SERVER_INFO,
+    protocolVersion: PROTOCOL_VERSIONS[0],
+    transport: { type: "streamable-http", url: "https://scrapelads.com/mcp" },
+    capabilities: { tools: { listChanged: false } },
+    authentication: {
+      type: "bearer",
+      required: true,
+      header: "Authorization",
+      scheme: "Bearer",
+      description:
+        "Apify API token. Required for tools/call; initialize and tools/list are open. The token is forwarded to api.apify.com per call and never stored.",
+      documentation: "https://scrapelads.com/mcp-server/",
+    },
+    tools: TOOLS.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+    })),
+    homepage: "https://scrapelads.com/mcp-server/",
+    repository: "https://github.com/charbeld/scrapelads-mcp",
+    categories: ["social-media", "data-extraction"],
+  };
+}
+
 export async function handleMcp(request, env) {
   if (request.method === "OPTIONS") return withCors(new Response(null, { status: 204 }));
   if (request.method !== "POST") {
@@ -121,7 +157,12 @@ export async function handleMcp(request, env) {
   try {
     payload = await request.json();
   } catch {
-    return rpcError(null, -32700, "Parse error");
+    return withCors(
+      new Response(JSON.stringify(rpcError(null, -32700, "Parse error")), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
   }
 
   const token = bearerToken(request);
